@@ -14,7 +14,9 @@ const IssueDetailPage = async ({ params }: Props) => {
       id: parseInt(params.id as string),
     },
   });
+
   if (!issue) notFound();
+
   return (
     <div>
       <Heading>{issue.title}</Heading>
