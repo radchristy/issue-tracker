@@ -2,7 +2,7 @@ import "@radix-ui/themes/styles.css";
 import "./theme-config.css"
 import "./globals.css";
 import type { Metadata } from "next";
-import { Theme } from "@radix-ui/themes";
+import { Container, Theme } from "@radix-ui/themes";
 import { Geist, Geist_Mono } from "next/font/google";
 import NavBar from "./NavBar";
 
@@ -31,9 +31,10 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        <Theme >
+        <Theme>
           <NavBar />
-          <main className="p-5">{children}</main>
+          <main className="p-5"></main>
+          <Container>{children}</Container>
         </Theme>
       </body>
     </html>
