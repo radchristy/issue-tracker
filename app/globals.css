@@ -20,3 +20,9 @@ body {
   font-family: var(--font-geist-sans);
   @apply antialiased;
 }
+
+@layer utilities {
+  .nav-link {
+    @apply text-zinc-500 hover:text-zinc-800 transition-colors
+  }
+}
