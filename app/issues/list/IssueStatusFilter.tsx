@@ -14,12 +14,14 @@ const statuses: { label: string; value?: Status }[] = [
 
 const IssueStatusFilter = () => {
   const router = useRouter();
+  // const searchParams = useSearchParams(); // ✅ Read the status from the URL
 
   return (
     <Select.Root
       onValueChange={(status) => {
-        const query = status === "_all" ? "" : `?status=${status}`;
-        router.push("/issues/list" + query);
+          const query = status === "_all" ? "" : `?status=${status}`;
+          router.push("/issues/list" + query);
+
       }}
     >
       <Select.Trigger placeholder="Filter by status..." />

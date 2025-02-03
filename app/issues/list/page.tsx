@@ -1,53 +1,83 @@
-// import Pagination from "@/app/components/Pagination";
 import prisma from "@/prisma/client";
-import { Status } from "@prisma/client";
+import { Table } from "@radix-ui/themes";
+import { IssueStatusBadge, Link } from "@/app/components";
 import IssueActions from "./IssueActions";
-import IssueTable, { columnNames, issueQuery } from "./IssueTable";
-import { Flex } from "@radix-ui/themes";
-import { Metadata } from "next";
-
+import { Status, Issue } from "@prisma/client";
+import NextLink from "next/link";
+import { ArrowUpIcon } from "@radix-ui/react-icons";
+type SearchParams = Promise<{ status: Status, orderBy: keyof Issue}>;
 interface Props {
-  searchParams: issueQuery;
+  searchParams: SearchParams
 }
 
-const IssuesPage = async ({ searchParams }: Props) => {
+export default async function IssuesPage(props: Props) {
+  const searchParams = await props.searchParams;
   const statuses = Object.values(Status);
+
+
+  const columns: { label: string; value: keyof Issue; className?: string }[] = [
+    { label: "Issue", value: "title" },
+    { label: "Status", value: "status", className: "hidden md:table-cell" },
+    { label: "Created", value: "createdAt", className: "hidden md:table-cell" },
+  ];
+
   const status = statuses.includes(searchParams.status)
     ? searchParams.status
-    : undefined;
-  const where = { status };
-  const orderBy = columnNames.includes(searchParams.orderBy)
-    ? { [searchParams.orderBy]: searchParams.dir }
-    : undefined;
+    : undefined;  
+  // const filter =(searchParams.orderBy) ? searchParams.orderBy : undefined
+  const orderBy = columns.map(column => column.value).includes(searchParams.orderBy) ? {[searchParams.orderBy]: 'asc'} : undefined
 
-  const page = parseInt(searchParams.page) || 1;
-  const pageSize = 10;
   const issues = await prisma.issue.findMany({
-    where,
-    orderBy,
-    skip: (page - 1) * pageSize,
-    take: pageSize,
+    where: {
+      status,
+    },
+    orderBy
   });
-  const issueCount = await prisma.issue.count({ where });
-
+  
   return (
-    <Flex direction="column" gap="3">
+    <div>
       <IssueActions />
-      <IssueTable searchParams={searchParams} issues={issues} />
-      {/* <Pagination
-        pageSize={pageSize}
-        currentPage={page}
-        itemCount={issueCount}
-      /> */}
-    </Flex>
+
+      <Table.Root variant="surface">
+        <Table.Header>
+          <Table.Row>
+            {columns.map((column) => (
+              <Table.ColumnHeaderCell key={column.value}>
+                <NextLink
+                  href={{ query: { ...searchParams, orderBy: column.value } }}
+                >
+                  {column.label}
+                </NextLink>
+                {column.value === searchParams.orderBy
+                  && (
+                  <ArrowUpIcon className="inline" />
+                )}
+              </Table.ColumnHeaderCell>
+            ))}
+          </Table.Row>
+        </Table.Header>
+        <Table.Body>
+          {issues.map((issue) => (
+            <Table.Row key={issue.id}>
+              <Table.Cell>
+                <Link href={`/issues/${issue.id}`}>{issue.title}</Link>
+                <div className="block md:hidden">
+                  <IssueStatusBadge status={issue.status} />
+                </div>
+              </Table.Cell>
+              <Table.Cell className="hidden md:table-cell">
+                <IssueStatusBadge status={issue.status} />
+              </Table.Cell>
+              <Table.Cell className="hidden md:table-cell">
+                {issue.createdAt.toDateString()}
+              </Table.Cell>
+            </Table.Row>
+          ))}
+        </Table.Body>
+      </Table.Root>
+    </div>
   );
 };
 
-export const dynamic = "force-dynamic";
+export const dynamic = "force-dynamic"; // ✅ Ensures dynamic query updates
 
-export const metadata: Metadata = {
-  title: "Issue Tracker - Issue List",
-  description: "View all project issues",
-};
-
-export default IssuesPage;
