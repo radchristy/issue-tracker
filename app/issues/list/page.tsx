@@ -4,8 +4,13 @@ import { IssueStatusBadge, Link } from "@/app/components";
 import IssueActions from "./IssueActions";
 import { Status, Issue } from "@prisma/client";
 import NextLink from "next/link";
-import { ArrowUpIcon } from "@radix-ui/react-icons";
-type SearchParams = Promise<{ status: Status, orderBy: keyof Issue}>;
+import { ArrowDownIcon, ArrowUpIcon } from "@radix-ui/react-icons";
+
+interface SearchParams { 
+  status?: Status
+  orderBy?: keyof Issue
+  order?: "asc" | "desc"
+}
 interface Props {
   searchParams: SearchParams
 }
@@ -14,26 +19,30 @@ export default async function IssuesPage(props: Props) {
   const searchParams = await props.searchParams;
   const statuses = Object.values(Status);
 
-
   const columns: { label: string; value: keyof Issue; className?: string }[] = [
     { label: "Issue", value: "title" },
     { label: "Status", value: "status", className: "hidden md:table-cell" },
     { label: "Created", value: "createdAt", className: "hidden md:table-cell" },
   ];
 
-  const status = statuses.includes(searchParams.status)
+  const status = statuses.includes(searchParams.status!)
     ? searchParams.status
-    : undefined;  
-  // const filter =(searchParams.orderBy) ? searchParams.orderBy : undefined
-  const orderBy = columns.map(column => column.value).includes(searchParams.orderBy) ? {[searchParams.orderBy]: 'asc'} : undefined
+    : undefined;
+
+  const isDescending = searchParams.order === "desc";
+  const nextOrder = isDescending ? "asc" : "desc";
+
+  const orderBy = columns.map((col) => col.value).includes(searchParams.orderBy!)
+    ? { [searchParams.orderBy!]: searchParams.order || "asc" }
+    : undefined;
 
   const issues = await prisma.issue.findMany({
     where: {
       status,
     },
-    orderBy
+    orderBy,
   });
-  
+
   return (
     <div>
       <IssueActions />
@@ -42,16 +51,27 @@ export default async function IssuesPage(props: Props) {
         <Table.Header>
           <Table.Row>
             {columns.map((column) => (
-              <Table.ColumnHeaderCell key={column.value}>
+              <Table.ColumnHeaderCell
+                key={column.value}
+                className={column.className}
+              >
                 <NextLink
-                  href={{ query: { ...searchParams, orderBy: column.value } }}
+                  href={{
+                    query: {
+                      ...searchParams,
+                      orderBy: column.value,
+                      order: nextOrder,
+                    },
+                  }}
                 >
                   {column.label}
                 </NextLink>
-                {column.value === searchParams.orderBy
-                  && (
-                  <ArrowUpIcon className="inline" />
-                )}
+                {column.value === searchParams.orderBy &&
+                  (isDescending ? (
+                    <ArrowDownIcon className="inline" />
+                  ) : (
+                    <ArrowUpIcon className="inline" />
+                  ))}
               </Table.ColumnHeaderCell>
             ))}
           </Table.Row>
@@ -79,5 +99,5 @@ export default async function IssuesPage(props: Props) {
   );
 };
 
-export const dynamic = "force-dynamic"; // ✅ Ensures dynamic query updates
+export const dynamic = "force-dynamic";
 
