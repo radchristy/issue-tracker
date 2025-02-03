@@ -1,52 +1,52 @@
-import { IssueStatusBadge } from "@/app/components";
-import { Issue, Status } from "@prisma/client";
+import { IssueStatusBadge, Link } from "@/app/components";
 import { ArrowDownIcon, ArrowUpIcon } from "@radix-ui/react-icons";
 import { Table } from "@radix-ui/themes";
-import { default as Link, default as NextLink } from "next/link";
+import NextLink from "next/link";
+import { Status, Issue } from "@prisma/client";
 
-export interface issueQuery {
+export interface IssueQuery {
   status: Status;
   orderBy: keyof Issue;
-  dir: "asc" | "desc";
   page: string;
+  order?: "asc" | "desc";
 }
 
 interface Props {
-  searchParams: issueQuery;
+  searchParams: IssueQuery;
   issues: Issue[];
 }
 
 const IssueTable = ({ searchParams, issues }: Props) => {
+  // const searchParams = await props.searchParams;
+
+  const isDescending = ( searchParams.order) === "desc";
+  const nextOrder = ( isDescending) ? "asc" : "desc";
+
   return (
     <Table.Root variant="surface">
       <Table.Header>
         <Table.Row>
           {columns.map((column) => (
             <Table.ColumnHeaderCell
-              className={column.className}
               key={column.value}
+              className={column.className}
             >
               <NextLink
                 href={{
                   query: {
                     ...searchParams,
                     orderBy: column.value,
-                    dir:
-                      column.value === searchParams.orderBy
-                        ? searchParams.dir === "asc"
-                          ? "desc"
-                          : "asc"
-                        : "asc",
+                    order: nextOrder,
                   },
                 }}
               >
                 {column.label}
               </NextLink>
               {column.value === searchParams.orderBy &&
-                (searchParams.dir === "asc" ? (
-                  <ArrowUpIcon className="inline" />
-                ) : (
+                (isDescending ? (
                   <ArrowDownIcon className="inline" />
+                ) : (
+                  <ArrowUpIcon className="inline" />
                 ))}
             </Table.ColumnHeaderCell>
           ))}
@@ -74,16 +74,11 @@ const IssueTable = ({ searchParams, issues }: Props) => {
   );
 };
 
-const columns: {
-  label: string;
-  value: keyof Issue;
-  className?: string;
-}[] = [
+const columns: { label: string; value: keyof Issue; className?: string }[] = [
   { label: "Issue", value: "title" },
   { label: "Status", value: "status", className: "hidden md:table-cell" },
   { label: "Created", value: "createdAt", className: "hidden md:table-cell" },
 ];
 
 export const columnNames = columns.map((column) => column.value);
-
 export default IssueTable;

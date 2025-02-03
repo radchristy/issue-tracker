@@ -1,31 +1,18 @@
-import prisma from "@/prisma/client";
-import { Table } from "@radix-ui/themes";
-import { IssueStatusBadge, Link } from "@/app/components";
-import IssueActions from "./IssueActions";
-import { Status, Issue } from "@prisma/client";
-import NextLink from "next/link";
-import { ArrowDownIcon, ArrowUpIcon } from "@radix-ui/react-icons";
 import Pagination from "@/app/components/Pagination";
+import prisma from "@/prisma/client";
+import { Status } from "@prisma/client";
+import IssueActions from "./IssueActions";
+import IssueTable, { columnNames, IssueQuery } from "./IssueTable";
+import { Flex } from "@radix-ui/themes";
 
-interface SearchParams {
-  status?: Status;
-  orderBy?: keyof Issue;
-  order?: "asc" | "desc";
-  page: string;
-}
 interface Props {
-  searchParams: SearchParams;
+  searchParams: IssueQuery;
 }
 
-export default async function IssuesPage(props: Props) {
-  const searchParams = await props.searchParams;
-  const statuses = Object.values(Status);
+export default async function IssuesPage({ searchParams }: Props) {
+  // const searchParams = await props.searchParams;
 
-  const columns: { label: string; value: keyof Issue; className?: string }[] = [
-    { label: "Issue", value: "title" },
-    { label: "Status", value: "status", className: "hidden md:table-cell" },
-    { label: "Created", value: "createdAt", className: "hidden md:table-cell" },
-  ];
+  const statuses = Object.values(Status);
 
   const status = statuses.includes(searchParams.status!)
     ? searchParams.status
@@ -33,17 +20,12 @@ export default async function IssuesPage(props: Props) {
 
   const where = { status };
 
-  const isDescending = searchParams.order === "desc";
-  const nextOrder = isDescending ? "asc" : "desc";
-
-  const orderBy = columns
-    .map((col) => col.value)
-    .includes(searchParams.orderBy!)
-    ? { [searchParams.orderBy!]: searchParams.order || "asc" }
-    : undefined;
-
   const page = parseInt(searchParams.page) || 1;
   const pageSize = 10;
+
+  const orderBy = columnNames.includes(searchParams.orderBy!)
+    ? { [searchParams.orderBy!]: searchParams.order || "asc" }
+    : undefined;
 
   const issues = await prisma.issue.findMany({
     where,
@@ -55,65 +37,16 @@ export default async function IssuesPage(props: Props) {
   const issueCount = await prisma.issue.count({ where });
 
   return (
-    <div>
+    <Flex direction="column" gap="3">
       <IssueActions />
-
-      <Table.Root variant="surface">
-        <Table.Header>
-          <Table.Row>
-            {columns.map((column) => (
-              <Table.ColumnHeaderCell
-                key={column.value}
-                className={column.className}
-              >
-                <NextLink
-                  href={{
-                    query: {
-                      ...searchParams,
-                      orderBy: column.value,
-                      order: nextOrder,
-                    },
-                  }}
-                >
-                  {column.label}
-                </NextLink>
-                {column.value === searchParams.orderBy &&
-                  (isDescending ? (
-                    <ArrowDownIcon className="inline" />
-                  ) : (
-                    <ArrowUpIcon className="inline" />
-                  ))}
-              </Table.ColumnHeaderCell>
-            ))}
-          </Table.Row>
-        </Table.Header>
-        <Table.Body>
-          {issues.map((issue) => (
-            <Table.Row key={issue.id}>
-              <Table.Cell>
-                <Link href={`/issues/${issue.id}`}>{issue.title}</Link>
-                <div className="block md:hidden">
-                  <IssueStatusBadge status={issue.status} />
-                </div>
-              </Table.Cell>
-              <Table.Cell className="hidden md:table-cell">
-                <IssueStatusBadge status={issue.status} />
-              </Table.Cell>
-              <Table.Cell className="hidden md:table-cell">
-                {issue.createdAt.toDateString()}
-              </Table.Cell>
-            </Table.Row>
-          ))}
-        </Table.Body>
-      </Table.Root>
+      <IssueTable searchParams={searchParams} issues={issues} />
       <Pagination
         pageSize={pageSize}
         currentPage={page}
         itemCount={issueCount}
       />
-    </div>
+    </Flex>
   );
-};
+}
 
 export const dynamic = "force-dynamic";
-
