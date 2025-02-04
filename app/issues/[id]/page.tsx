@@ -41,13 +41,14 @@ const IssueDetailPage = async ({ params }: Props) => {
   );
 };
 
-export async function generateMetadata({ params }: Props) { 
-  const issue = await fetchUser(parseInt(params.id))
-  
+export async function generateMetadata({ params }: { params: { id: string } }) {
+  const resolvedParams = await Promise.resolve(params);
+  const issue = await fetchUser(parseInt(resolvedParams.id));
+
   return {
     title: issue?.title,
-    description: "Details of issue" + issue?.id
-  }
+    description: "Details of issue " + issue?.id,
+  };
 }
 
 export default IssueDetailPage;
